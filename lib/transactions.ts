@@ -173,11 +173,12 @@ export async function getCashBook(category?: PaymentCategory): Promise<CashBookR
 }
 
 export async function getTrialBalance(): Promise<TrialBalanceRow[]> {
-  const rows = (await prisma.ledgerEntry.groupBy({
+  const rawRows = await prisma.ledgerEntry.groupBy({
     by: ["account"],
     _sum: { debit: true, credit: true },
     orderBy: { account: "asc" },
-  })) as LedgerGroupRow[];
+  });
+  const rows = rawRows as unknown as LedgerGroupRow[];
 
   return rows.map((r) => ({
     account: r.account,
@@ -201,7 +202,7 @@ export async function getDashboardStats(): Promise<{
       by: ["category"],
       where: { type: "DEBIT" },
       _sum: { amount: true },
-    }) as Promise<CategoryGroupRow[]>,
+    }),
   ]);
 
   const totalReceipts = toNum((receipts._sum as { amount: { toNumber(): number } | number | null }).amount);
@@ -212,7 +213,7 @@ export async function getDashboardStats(): Promise<{
     totalPayments,
     balance: totalReceipts - totalPayments,
     transactionCount: count,
-    byCategory: (byCategory as CategoryGroupRow[]).map((r) => ({
+    byCategory: (byCategory as unknown as CategoryGroupRow[]).map((r) => ({
       category: r.category,
       total: toNum(r._sum.amount),
     })),
