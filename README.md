@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mbizo High School — Accounts System
 
-## Getting Started
+Integrated Accounts Payment & Cash-Book Automation System.
+Built with Next.js 16 (App Router), Prisma ORM, PostgreSQL, TypeScript, Tailwind v4.
 
-First, run the development server:
+---
 
+## Setup
+
+### 1. Install dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure the database
+Copy `.env.example` to `.env` and set your `DATABASE_URL`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Supabase:**
+```
+DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Local PostgreSQL:**
+```
+DATABASE_URL="postgresql://postgres:password@localhost:5432/mbizo_accounts"
+```
 
-## Learn More
+### 3. Run migrations
+```bash
+npm run db:migrate
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Seed the admin user
+```bash
+npm run db:seed
+# Creates: admin / admin123
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 5. Start the dev server
+```bash
+npm run dev
+# → http://localhost:3000
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Command | Description |
+|---|---|
+| `npm run dev` | Start development server |
+| `npm run build` | Generate Prisma client + build for production |
+| `npm run db:migrate` | Apply all pending migrations |
+| `npm run db:studio` | Open Prisma Studio (database GUI) |
+| `npm run db:seed` | Seed default admin user |
+| `npm run lint` | ESLint |
+| `npm run type-check` | TypeScript type check |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Payment Categories
+BEAM · PLAN · HIGHERLIFE · CAMFED · CHILDCARE · SELF
+
+## Features (Prototype)
+- Single-entry transaction → auto-posts to cash book + general ledger
+- Cash book filterable by category with running balance
+- Trial balance with balanced/out-of-balance indicator
+- Dashboard with receipt/payment totals and category breakdown
+- Cookie-based sessions with bcrypt password hashing
+
+## Database Schema
+See `prisma/schema.prisma` and `prisma/migrations/` for full schema and migration SQL.

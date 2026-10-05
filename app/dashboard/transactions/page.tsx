@@ -1,4 +1,3 @@
-import { initDb } from "@/lib/db";
 import { getTransactions } from "@/lib/transactions";
 import TransactionTable from "@/components/TransactionTable";
 import NewTransactionForm from "@/components/NewTransactionForm";
@@ -9,29 +8,13 @@ export default async function TransactionsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  initDb();
-  const transactions = getTransactions();
+  const transactions = await getTransactions();
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          marginBottom: 28,
-          gap: 16,
-        }}
-      >
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28, gap: 16 }}>
         <div>
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 700,
-              color: "var(--navy)",
-              letterSpacing: "-0.4px",
-            }}
-          >
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", letterSpacing: "-0.4px" }}>
             Transactions
           </h1>
           <p style={{ color: "var(--text-muted)", marginTop: 4, fontSize: 13 }}>
@@ -40,7 +23,6 @@ export default async function TransactionsPage() {
         </div>
         <NewTransactionForm />
       </div>
-
       <TransactionTable transactions={transactions} />
     </div>
   );

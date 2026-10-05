@@ -1,6 +1,4 @@
-import Database from "better-sqlite3";
-import { executeTransaction, query } from "./db";
-import { generateId } from "./auth";
+import { prisma } from "./db";
 import type {
   PaymentCategory,
   TransactionType,
@@ -21,220 +19,202 @@ export interface CreateTransactionInput {
   createdById: string;
 }
 
-interface TransactionRow {
-  id: string;
-  date: string;
-  description: string;
-  amount: number;
-  type: TransactionType;
-  category: PaymentCategory;
-  reference: string;
-  account: AccountType;
-  created_at: string;
-  created_by_id: string;
-  username: string;
-}
-
-interface LedgerRow {
+interface LedgerDraft {
   account: string;
   debit: number;
   credit: number;
 }
 
-export function createTransaction(input: CreateTransactionInput): string {
-  const txId = generateId();
-  const ledgerEntries = buildLedgerEntries(input);
-
-  executeTransaction((db: Database.Database) => {
-    db.prepare(
-      `INSERT INTO transactions (id, date, description, amount, type, category, reference, account, created_by_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      txId,
-      input.date,
-      input.description,
-      input.amount,
-      input.type,
-      input.category,
-      input.reference,
-      input.account,
-      input.createdById
-    );
-
-    const insertLedger = db.prepare(
-      `INSERT INTO ledger_entries (id, transaction_id, account, debit, credit)
-       VALUES (?, ?, ?, ?, ?)`
-    );
-
-    for (const entry of ledgerEntries) {
-      insertLedger.run(generateId(), txId, entry.account, entry.debit, entry.credit);
-    }
-  });
-
-  return txId;
+/** Handles Prisma Decimal, number, string, or null uniformly */
+function toNum(val: { toNumber(): number } | number | string | null | undefined): number {
+  if (val == null) return 0;
+  if (typeof val === "number") return val;
+  if (typeof val === "string") return parseFloat(val);
+  return val.toNumber();
 }
 
-function buildLedgerEntries(
-  input: CreateTransactionInput
-): { account: string; debit: number; credit: number }[] {
+function buildLedgerEntries(input: CreateTransactionInput): LedgerDraft[] {
   const categoryAccount = `${input.category} Fund`;
-  const cashAccount = input.account;
-
   if (input.type === "DEBIT") {
-    // Money received into cash/bank — debit cash, credit the fund
     return [
-      { account: cashAccount, debit: input.amount, credit: 0 },
+      { account: input.account, debit: input.amount, credit: 0 },
       { account: categoryAccount, debit: 0, credit: input.amount },
     ];
-  } else {
-    // Payment out — debit the fund, credit cash/bank
-    return [
-      { account: categoryAccount, debit: input.amount, credit: 0 },
-      { account: cashAccount, debit: 0, credit: input.amount },
-    ];
   }
+  return [
+    { account: categoryAccount, debit: input.amount, credit: 0 },
+    { account: input.account, debit: 0, credit: input.amount },
+  ];
 }
 
-export function getTransactions(filters?: {
+// ---------------------------------------------------------------------------
+// Row shapes returned by Prisma (manually typed so tsc doesn't lose them when
+// the generated client isn't present in the sandbox environment)
+// ---------------------------------------------------------------------------
+
+interface TxRow {
+  id: string;
+  date: Date;
+  description: string;
+  amount: { toNumber(): number } | number;
+  type: string;
+  category: string;
+  reference: string;
+  account: string;
+  createdAt: Date;
+  createdById: string;
+  createdBy: { username: string };
+}
+
+interface TxRowSimple {
+  id: string;
+  date: Date;
+  description: string;
+  amount: { toNumber(): number } | number;
+  type: string;
+  category: string;
+  reference: string;
+  account: string;
+  createdAt: Date;
+  createdById: string;
+}
+
+interface LedgerGroupRow {
+  account: string;
+  _sum: {
+    debit: { toNumber(): number } | number | null;
+    credit: { toNumber(): number } | number | null;
+  };
+}
+
+interface CategoryGroupRow {
+  category: string;
+  _sum: { amount: { toNumber(): number } | number | null };
+}
+
+// ---------------------------------------------------------------------------
+
+export async function createTransaction(input: CreateTransactionInput): Promise<string> {
+  const tx = await prisma.transaction.create({
+    data: {
+      date: new Date(input.date),
+      description: input.description,
+      amount: input.amount,
+      type: input.type,
+      category: input.category,
+      reference: input.reference,
+      account: input.account,
+      createdById: input.createdById,
+      ledgerEntries: { create: buildLedgerEntries(input) },
+    },
+  });
+  return (tx as { id: string }).id;
+}
+
+export async function getTransactions(filters?: {
   category?: PaymentCategory;
   dateFrom?: string;
   dateTo?: string;
-}): Transaction[] {
-  let sql = `
-    SELECT t.*, u.username
-    FROM transactions t
-    JOIN users u ON u.id = t.created_by_id
-    WHERE 1=1
-  `;
-  const params: string[] = [];
+}): Promise<Transaction[]> {
+  const rows = (await prisma.transaction.findMany({
+    where: {
+      ...(filters?.category ? { category: filters.category } : {}),
+      ...(filters?.dateFrom || filters?.dateTo
+        ? {
+            date: {
+              ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
+              ...(filters.dateTo ? { lte: new Date(filters.dateTo) } : {}),
+            },
+          }
+        : {}),
+    },
+    include: { createdBy: { select: { username: true } } },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+  })) as TxRow[];
 
-  if (filters?.category) {
-    sql += " AND t.category = ?";
-    params.push(filters.category);
-  }
-  if (filters?.dateFrom) {
-    sql += " AND t.date >= ?";
-    params.push(filters.dateFrom);
-  }
-  if (filters?.dateTo) {
-    sql += " AND t.date <= ?";
-    params.push(filters.dateTo);
-  }
-
-  sql += " ORDER BY t.date DESC, t.created_at DESC";
-
-  const rows = query<TransactionRow>(sql, params);
   return rows.map((r) => ({
     id: r.id,
-    date: r.date,
+    date: r.date.toISOString().split("T")[0] ?? "",
     description: r.description,
-    amount: r.amount,
-    type: r.type,
-    category: r.category,
+    amount: toNum(r.amount),
+    type: r.type as TransactionType,
+    category: r.category as PaymentCategory,
     reference: r.reference,
-    account: r.account,
-    createdAt: r.created_at,
-    createdById: r.created_by_id,
-    createdByUsername: r.username,
+    account: r.account as AccountType,
+    createdAt: r.createdAt.toISOString(),
+    createdById: r.createdById,
+    createdByUsername: r.createdBy.username,
   }));
 }
 
-export function getCashBook(category?: PaymentCategory): CashBookRow[] {
-  let sql = `
-    SELECT t.date, t.description, t.reference, t.amount, t.type, t.category, t.id as transactionId
-    FROM transactions t
-    WHERE 1=1
-  `;
-  const params: string[] = [];
+export async function getCashBook(category?: PaymentCategory): Promise<CashBookRow[]> {
+  const rows = (await prisma.transaction.findMany({
+    where: category ? { category } : {},
+    orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+  })) as TxRowSimple[];
 
-  if (category) {
-    sql += " AND t.category = ?";
-    params.push(category);
-  }
-
-  sql += " ORDER BY t.date ASC, t.created_at ASC";
-
-  interface CashRow {
-    date: string;
-    description: string;
-    reference: string;
-    amount: number;
-    type: TransactionType;
-    category: PaymentCategory;
-    transactionId: string;
-  }
-
-  const rows = query<CashRow>(sql, params);
   let balance = 0;
-
   return rows.map((r) => {
-    const debit = r.type === "DEBIT" ? r.amount : 0;
-    const credit = r.type === "CREDIT" ? r.amount : 0;
+    const amount = toNum(r.amount);
+    const debit = r.type === "DEBIT" ? amount : 0;
+    const credit = r.type === "CREDIT" ? amount : 0;
     balance += debit - credit;
-
     return {
-      date: r.date,
+      date: r.date.toISOString().split("T")[0] ?? "",
       description: r.description,
       reference: r.reference,
       debit,
       credit,
       balance,
-      category: r.category,
-      transactionId: r.transactionId,
+      category: r.category as PaymentCategory,
+      transactionId: r.id,
     };
   });
 }
 
-export function getTrialBalance(): TrialBalanceRow[] {
-  const rows = query<LedgerRow>(
-    `SELECT account, SUM(debit) as debit, SUM(credit) as credit
-     FROM ledger_entries
-     GROUP BY account
-     ORDER BY account ASC`
-  );
+export async function getTrialBalance(): Promise<TrialBalanceRow[]> {
+  const rows = (await prisma.ledgerEntry.groupBy({
+    by: ["account"],
+    _sum: { debit: true, credit: true },
+    orderBy: { account: "asc" },
+  })) as LedgerGroupRow[];
 
   return rows.map((r) => ({
     account: r.account,
-    debit: r.debit,
-    credit: r.credit,
+    debit: toNum(r._sum.debit),
+    credit: toNum(r._sum.credit),
   }));
 }
 
-export function getDashboardStats(): {
+export async function getDashboardStats(): Promise<{
   totalReceipts: number;
   totalPayments: number;
   balance: number;
   transactionCount: number;
   byCategory: { category: string; total: number }[];
-} {
-  interface TotalsRow {
-    type: TransactionType;
-    total: number;
-  }
-  interface CountRow {
-    count: number;
-  }
-  interface CategoryRow {
-    category: string;
-    total: number;
-  }
+}> {
+  const [receipts, payments, count, byCategory] = await Promise.all([
+    prisma.transaction.aggregate({ where: { type: "DEBIT" }, _sum: { amount: true } }),
+    prisma.transaction.aggregate({ where: { type: "CREDIT" }, _sum: { amount: true } }),
+    prisma.transaction.count(),
+    prisma.transaction.groupBy({
+      by: ["category"],
+      where: { type: "DEBIT" },
+      _sum: { amount: true },
+    }) as Promise<CategoryGroupRow[]>,
+  ]);
 
-  const totals = query<TotalsRow>(
-    `SELECT type, SUM(amount) as total FROM transactions GROUP BY type`
-  );
-  const countRow = query<CountRow>(`SELECT COUNT(*) as count FROM transactions`);
-  const byCategory = query<CategoryRow>(
-    `SELECT category, SUM(amount) as total FROM transactions WHERE type = 'DEBIT' GROUP BY category`
-  );
-
-  const receipts = totals.find((r) => r.type === "DEBIT")?.total ?? 0;
-  const payments = totals.find((r) => r.type === "CREDIT")?.total ?? 0;
+  const totalReceipts = toNum((receipts._sum as { amount: { toNumber(): number } | number | null }).amount);
+  const totalPayments = toNum((payments._sum as { amount: { toNumber(): number } | number | null }).amount);
 
   return {
-    totalReceipts: receipts,
-    totalPayments: payments,
-    balance: receipts - payments,
-    transactionCount: countRow[0]?.count ?? 0,
-    byCategory,
+    totalReceipts,
+    totalPayments,
+    balance: totalReceipts - totalPayments,
+    transactionCount: count,
+    byCategory: (byCategory as CategoryGroupRow[]).map((r) => ({
+      category: r.category,
+      total: toNum(r._sum.amount),
+    })),
   };
 }

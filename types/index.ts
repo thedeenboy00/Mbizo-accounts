@@ -10,11 +10,12 @@ export type TransactionType = "DEBIT" | "CREDIT";
 
 export type AccountType = "Cash" | "Bank";
 
-export interface User {
+export type UserRole = "admin" | "bursar" | "cashier";
+
+export interface SessionUser {
   id: string;
   username: string;
-  role: string;
-  createdAt: string;
+  role: UserRole;
 }
 
 export interface Transaction {
@@ -55,10 +56,4 @@ export interface TrialBalanceRow {
   account: string;
   debit: number;
   credit: number;
-}
-
-export interface SessionUser {
-  id: string;
-  username: string;
-  role: string;
 }

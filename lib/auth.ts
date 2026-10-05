@@ -1,20 +1,7 @@
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
-import { queryOne, execute } from "./db";
+import { prisma } from "./db";
 import type { SessionUser } from "@/types";
-
-interface UserRow {
-  id: string;
-  username: string;
-  password_hash: string;
-  role: string;
-}
-
-interface SessionRow {
-  user_id: string;
-  username: string;
-  role: string;
-}
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
@@ -27,34 +14,19 @@ export async function verifyPassword(
   return bcrypt.compare(password, hash);
 }
 
-export function generateId(): string {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
-
 export async function createSession(userId: string): Promise<void> {
-  const sessionId = generateId();
-  const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  execute(
-    `CREATE TABLE IF NOT EXISTS sessions (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      expires_at TEXT NOT NULL
-    )`
-  );
-
-  execute("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)", [
-    sessionId,
-    userId,
-    expires,
-  ]);
+  const session = await prisma.session.create({
+    data: { userId, expiresAt },
+  });
 
   const cookieStore = await cookies();
-  cookieStore.set("session_id", sessionId, {
+  cookieStore.set("session_id", session.id, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    expires: new Date(expires),
+    expires: expiresAt,
   });
 }
 
@@ -63,23 +35,27 @@ export async function getSession(): Promise<SessionUser | null> {
   const sessionId = cookieStore.get("session_id")?.value;
   if (!sessionId) return null;
 
-  const row = queryOne<SessionRow>(
-    `SELECT s.user_id, u.username, u.role
-     FROM sessions s
-     JOIN users u ON u.id = s.user_id
-     WHERE s.id = ? AND s.expires_at > datetime('now')`,
-    [sessionId]
-  );
+  const session = await prisma.session.findFirst({
+    where: {
+      id: sessionId,
+      expiresAt: { gt: new Date() },
+    },
+    include: { user: { select: { id: true, username: true, role: true } } },
+  });
 
-  if (!row) return null;
-  return { id: row.user_id, username: row.username, role: row.role };
+  if (!session) return null;
+  return {
+    id: session.user.id,
+    username: session.user.username,
+    role: session.user.role,
+  };
 }
 
 export async function destroySession(): Promise<void> {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get("session_id")?.value;
   if (sessionId) {
-    execute("DELETE FROM sessions WHERE id = ?", [sessionId]);
+    await prisma.session.delete({ where: { id: sessionId } }).catch(() => null);
   }
   cookieStore.delete("session_id");
 }
@@ -87,12 +63,9 @@ export async function destroySession(): Promise<void> {
 export async function validateCredentials(
   username: string,
   password: string
-): Promise<UserRow | null> {
-  const user = queryOne<UserRow>(
-    "SELECT id, username, password_hash, role FROM users WHERE username = ?",
-    [username]
-  );
+): Promise<{ id: string; username: string; role: string } | null> {
+  const user = await prisma.user.findUnique({ where: { username } });
   if (!user) return null;
-  const valid = await verifyPassword(password, user.password_hash);
-  return valid ? user : null;
+  const valid = await verifyPassword(password, user.passwordHash);
+  return valid ? { id: user.id, username: user.username, role: user.role } : null;
 }

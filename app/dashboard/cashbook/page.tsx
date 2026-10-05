@@ -1,4 +1,3 @@
-import { initDb } from "@/lib/db";
 import { getCashBook } from "@/lib/transactions";
 import CashBookTable from "@/components/CashBookTable";
 import { getSession } from "@/lib/auth";
@@ -17,8 +16,6 @@ export default async function CashBookPage({
   const session = await getSession();
   if (!session) redirect("/login");
 
-  initDb();
-
   const params = await searchParams;
   const rawCategory = params.category;
   const selectedCategory =
@@ -26,19 +23,12 @@ export default async function CashBookPage({
       ? (rawCategory as PaymentCategory)
       : undefined;
 
-  const rows = getCashBook(selectedCategory);
+  const rows = await getCashBook(selectedCategory);
 
   return (
     <div>
       <div style={{ marginBottom: 28 }}>
-        <h1
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            color: "var(--navy)",
-            letterSpacing: "-0.4px",
-          }}
-        >
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", letterSpacing: "-0.4px" }}>
           Cash Book
         </h1>
         <p style={{ color: "var(--text-muted)", marginTop: 4, fontSize: 13 }}>
@@ -47,34 +37,11 @@ export default async function CashBookPage({
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-        <a
-          href="/dashboard/cashbook"
-          style={{
-            padding: "6px 14px",
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 500,
-            background: !selectedCategory ? "var(--navy)" : "var(--surface)",
-            color: !selectedCategory ? "white" : "var(--text-muted)",
-            border: `1px solid ${!selectedCategory ? "var(--navy)" : "var(--border)"}`,
-          }}
-        >
+        <a href="/dashboard/cashbook" style={{ padding: "6px 14px", borderRadius: 6, fontSize: 13, fontWeight: 500, background: !selectedCategory ? "var(--navy)" : "var(--surface)", color: !selectedCategory ? "white" : "var(--text-muted)", border: `1px solid ${!selectedCategory ? "var(--navy)" : "var(--border)"}` }}>
           All
         </a>
         {CATEGORIES.map((cat) => (
-          <a
-            key={cat}
-            href={`/dashboard/cashbook?category=${cat}`}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 6,
-              fontSize: 13,
-              fontWeight: 500,
-              background: selectedCategory === cat ? "var(--navy)" : "var(--surface)",
-              color: selectedCategory === cat ? "white" : "var(--text-muted)",
-              border: `1px solid ${selectedCategory === cat ? "var(--navy)" : "var(--border)"}`,
-            }}
-          >
+          <a key={cat} href={`/dashboard/cashbook?category=${cat}`} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 13, fontWeight: 500, background: selectedCategory === cat ? "var(--navy)" : "var(--surface)", color: selectedCategory === cat ? "white" : "var(--text-muted)", border: `1px solid ${selectedCategory === cat ? "var(--navy)" : "var(--border)"}` }}>
             {cat}
           </a>
         ))}

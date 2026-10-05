@@ -3,41 +3,74 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+}
+
+enum PaymentCategory {
+  BEAM
+  PLAN
+  HIGHERLIFE
+  CAMFED
+  CHILDCARE
+  SELF
+}
+
+enum AccountType {
+  Cash
+  Bank
+}
+
+enum UserRole {
+  admin
+  bursar
+  cashier
 }
 
 model User {
   id           String        @id @default(cuid())
   username     String        @unique
   passwordHash String
-  role         String        @default("admin")
+  role         UserRole      @default(admin)
   createdAt    DateTime      @default(now())
   transactions Transaction[]
+  sessions     Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model Transaction {
-  id          String   @id @default(cuid())
-  date        DateTime
-  description String
-  amount      Float
-  type        String   // DEBIT | CREDIT
-  category    String   // BEAM | PLAN | HIGHERLIFE | CAMFED | CHILDCARE | SELF
-  reference   String
-  account     String   // e.g. Cash, Bank
-  createdAt   DateTime @default(now())
-  createdById String
-  createdBy   User     @relation(fields: [createdById], references: [id])
-
+  id            String          @id @default(cuid())
+  date          DateTime        @db.Date
+  description   String
+  amount        Decimal         @db.Decimal(12, 2)
+  type          TransactionType
+  category      PaymentCategory
+  reference     String
+  account       AccountType
+  createdAt     DateTime        @default(now())
+  createdById   String
+  createdBy     User            @relation(fields: [createdById], references: [id])
   ledgerEntries LedgerEntry[]
 }
 
 model LedgerEntry {
   id            String      @id @default(cuid())
   transactionId String
-  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   account       String
-  debit         Float       @default(0)
-  credit        Float       @default(0)
+  debit         Decimal     @default(0) @db.Decimal(12, 2)
+  credit        Decimal     @default(0) @db.Decimal(12, 2)
   createdAt     DateTime    @default(now())
 }

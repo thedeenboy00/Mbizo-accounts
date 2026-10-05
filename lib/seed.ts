@@ -1,36 +1,22 @@
-import { initDb, queryOne, execute } from "./db";
-import { hashPassword, generateId } from "./auth";
-
-interface UserRow {
-  id: string;
-}
+import { prisma } from "./db";
+import { hashPassword } from "./auth";
 
 async function seed(): Promise<void> {
-  initDb();
-
-  // Ensure sessions table exists
-  execute(`CREATE TABLE IF NOT EXISTS sessions (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    expires_at TEXT NOT NULL
-  )`);
-
-  const existing = queryOne<UserRow>(
-    "SELECT id FROM users WHERE username = ?",
-    ["admin"]
-  );
+  const existing = await prisma.user.findUnique({
+    where: { username: "admin" },
+  });
 
   if (!existing) {
     const hash = await hashPassword("admin123");
-    const id = generateId();
-    execute(
-      "INSERT INTO users (id, username, password_hash, role) VALUES (?, ?, ?, ?)",
-      [id, "admin", hash, "admin"]
-    );
+    await prisma.user.create({
+      data: { username: "admin", passwordHash: hash, role: "admin" },
+    });
     console.log("Seeded admin user: admin / admin123");
   } else {
     console.log("Admin user already exists");
   }
 }
 
-seed().catch(console.error);
+seed()
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());

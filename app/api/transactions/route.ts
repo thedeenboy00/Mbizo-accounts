@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { createTransaction, getTransactions } from "@/lib/transactions";
-import { initDb } from "@/lib/db";
 import type { PaymentCategory, TransactionType, AccountType } from "@/types";
 
 const VALID_CATEGORIES: PaymentCategory[] = [
@@ -21,7 +20,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const dateFrom = searchParams.get("dateFrom") ?? undefined;
   const dateTo = searchParams.get("dateTo") ?? undefined;
 
-  const transactions = getTransactions({
+  const transactions = await getTransactions({
     category: category ?? undefined,
     dateFrom,
     dateTo,
@@ -37,8 +36,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    initDb();
-
     const body = await req.json() as {
       date?: string;
       description?: string;
@@ -54,7 +51,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!date || !description || !amount || !type || !category || !reference || !account) {
       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
-
     if (!VALID_TYPES.includes(type as TransactionType)) {
       return NextResponse.json({ error: "Invalid transaction type" }, { status: 400 });
     }
@@ -70,7 +66,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Amount must be a positive number" }, { status: 400 });
     }
 
-    const id = createTransaction({
+    const id = await createTransaction({
       date: date as string,
       description: description as string,
       amount: parsedAmount,
