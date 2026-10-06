@@ -109,9 +109,11 @@ export default function Sidebar({ username }: SidebarProps) {
         width: 220,
         background: "var(--navy)",
         height: "100%",
+        minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         overflowY: "auto",
+        overflowX: "hidden",
       }}
     >
       {/* Header */}
@@ -264,6 +266,9 @@ export default function Sidebar({ username }: SidebarProps) {
           left: 0,
           height: "100vh",
           zIndex: 10,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
         }}
         className="desktop-sidebar"
       >
