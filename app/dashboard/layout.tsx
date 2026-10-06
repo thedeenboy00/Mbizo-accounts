@@ -16,14 +16,34 @@ export default async function DashboardLayout({
       <main
         style={{
           flex: 1,
-          marginLeft: 220,
-          padding: "32px 32px",
           minHeight: "100vh",
           background: "var(--bg)",
+          overflowX: "hidden",
         }}
+        className="dashboard-main"
       >
-        {children}
+        <div
+          style={{ padding: "24px 16px" }}
+          className="dashboard-content"
+        >
+          {children}
+        </div>
       </main>
+      <style>{`
+        @media (min-width: 768px) {
+          .dashboard-main {
+            margin-left: 220px;
+          }
+          .dashboard-content {
+            padding: 32px 32px !important;
+          }
+        }
+        @media (max-width: 767px) {
+          .dashboard-main {
+            padding-top: 52px;
+          }
+        }
+      `}</style>
     </div>
   );
 }

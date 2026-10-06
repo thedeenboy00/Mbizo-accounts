@@ -12,8 +12,8 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", letterSpacing: "-0.4px" }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--navy)", letterSpacing: "-0.4px" }}>
           Overview
         </h1>
         <p style={{ color: "var(--text-muted)", marginTop: 4, fontSize: 13 }}>
@@ -21,14 +21,7 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 16,
-          marginBottom: 32,
-        }}
-      >
+      <div className="stat-grid" style={{ marginBottom: 24 }}>
         <StatCard label="Total Receipts" value={stats.totalReceipts} currency color="green" />
         <StatCard label="Total Payments" value={stats.totalPayments} currency color="red" />
         <StatCard label="Net Balance" value={stats.balance} currency color={stats.balance >= 0 ? "green" : "red"} />
@@ -36,6 +29,20 @@ export default async function DashboardPage() {
       </div>
 
       <CategoryBreakdown data={stats.byCategory} />
+
+      <style>{`
+        .stat-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        @media (min-width: 768px) {
+          .stat-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+          }
+        }
+      `}</style>
     </div>
   );
 }
