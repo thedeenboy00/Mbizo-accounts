@@ -68,7 +68,7 @@ export default async function TrialBalancePage() {
                 strokeLinejoin="round"
               />
             </svg>
-            Download CSV
+            Download Excel
           </a>
         )}
       </div>
