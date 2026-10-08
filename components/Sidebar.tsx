@@ -45,6 +45,17 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    href: "/dashboard/students",
+    label: "Students",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M2 21v-2a6 6 0 0 1 6-6h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M16 16l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
 ];
 
 interface SidebarProps {

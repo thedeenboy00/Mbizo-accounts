@@ -219,3 +219,76 @@ export async function getDashboardStats(): Promise<{
     })),
   };
 }
+
+export interface GeneralLedgerAccount {
+  account: string;
+  entries: {
+    date: string;
+    description: string;
+    reference: string;
+    debit: number;
+    credit: number;
+    balance: number;
+    transactionId: string;
+  }[];
+  totalDebit: number;
+  totalCredit: number;
+  closingBalance: number;
+}
+
+export async function getGeneralLedger(): Promise<GeneralLedgerAccount[]> {
+  interface DecimalLike { toNumber(): number }
+  interface EntryRow {
+    account: string;
+    debit: DecimalLike | number;
+    credit: DecimalLike | number;
+    createdAt: Date;
+    transaction: {
+      id: string;
+      date: Date;
+      description: string;
+      reference: string;
+    };
+  }
+
+  const rows = (await prisma.ledgerEntry.findMany({
+    include: {
+      transaction: {
+        select: { id: true, date: true, description: true, reference: true },
+      },
+    },
+    orderBy: [{ account: "asc" }, { createdAt: "asc" }],
+  })) as unknown as EntryRow[];
+
+  const accountMap = new Map<string, GeneralLedgerAccount>();
+
+  for (const r of rows) {
+    if (!accountMap.has(r.account)) {
+      accountMap.set(r.account, {
+        account: r.account,
+        entries: [],
+        totalDebit: 0,
+        totalCredit: 0,
+        closingBalance: 0,
+      });
+    }
+    const acc = accountMap.get(r.account)!;
+    const debit = toNum(r.debit);
+    const credit = toNum(r.credit);
+    acc.totalDebit += debit;
+    acc.totalCredit += credit;
+    acc.closingBalance += debit - credit;
+
+    acc.entries.push({
+      date: r.transaction.date.toISOString().split("T")[0] ?? "",
+      description: r.transaction.description,
+      reference: r.transaction.reference,
+      debit,
+      credit,
+      balance: acc.closingBalance,
+      transactionId: r.transaction.id,
+    });
+  }
+
+  return Array.from(accountMap.values());
+}

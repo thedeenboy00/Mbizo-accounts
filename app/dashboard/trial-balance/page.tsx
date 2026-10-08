@@ -40,7 +40,24 @@ export default async function TrialBalancePage() {
           </p>
         </div>
 
-        {rows.length > 0 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <a
+            href="/api/reports/general-ledger"
+            download
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "8px 14px", background: "var(--surface)",
+              border: "1px solid var(--border)", borderRadius: 7,
+              fontSize: 13, fontWeight: 500, color: "var(--navy)",
+              whiteSpace: "nowrap", textDecoration: "none",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3v13M7 12l5 5 5-5M3 21h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            General Ledger
+          </a>
+          {rows.length > 0 && (
           <a
             href="/api/reports/trial-balance"
             download
@@ -70,7 +87,8 @@ export default async function TrialBalancePage() {
             </svg>
             Download Excel
           </a>
-        )}
+          )}
+        </div>
       </div>
 
       <TrialBalanceTable

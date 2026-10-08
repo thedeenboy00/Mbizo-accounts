@@ -1,21 +1,44 @@
 export type PaymentCategory =
-  | "BEAM"
-  | "PLAN"
-  | "HIGHERLIFE"
-  | "CAMFED"
-  | "CHILDCARE"
-  | "SELF";
+  | "BEAM" | "PLAN" | "HIGHERLIFE" | "CAMFED" | "CHILDCARE" | "SELF";
 
 export type TransactionType = "DEBIT" | "CREDIT";
-
 export type AccountType = "Cash" | "Bank";
-
 export type UserRole = "admin" | "bursar" | "cashier";
+export type PaymentMethod = "Cash" | "Bank";
 
 export interface SessionUser {
   id: string;
   username: string;
   role: UserRole;
+}
+
+export interface Student {
+  id: string;
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  form: string;
+  class: string;
+  termFee: number;
+  createdAt: string;
+  // computed
+  totalPaid: number;
+  lastPayment: string | null;
+  lastPaymentAmount: number | null;
+  balance: number;
+}
+
+export interface FeePayment {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  amount: number;
+  method: PaymentMethod;
+  reference: string;
+  term: string;
+  notes: string | null;
+  createdAt: string;
+  createdByUsername?: string;
 }
 
 export interface Transaction {
@@ -27,6 +50,8 @@ export interface Transaction {
   category: PaymentCategory;
   reference: string;
   account: AccountType;
+  studentId?: string | null;
+  studentName?: string | null;
   createdAt: string;
   createdById: string;
   createdByUsername?: string;
@@ -56,4 +81,14 @@ export interface TrialBalanceRow {
   account: string;
   debit: number;
   credit: number;
+}
+
+export interface LedgerRow {
+  date: string;
+  description: string;
+  reference: string;
+  debit: number;
+  credit: number;
+  balance: number;
+  transactionId: string;
 }
