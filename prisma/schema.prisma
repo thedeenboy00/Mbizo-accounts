@@ -35,6 +35,14 @@ enum UserRole {
 enum PaymentMethod {
   Cash
   Bank
+  ZBSmilePay
+}
+
+enum ZBPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
 }
 
 model User {
@@ -56,13 +64,25 @@ model Session {
   createdAt DateTime @default(now())
 }
 
+// Admin-configurable fee types (e.g. Levy=90, Tuition=200)
+model FeeType {
+  id          String       @id @default(cuid())
+  name        String       @unique  // e.g. "Levy Fee", "Tuition Fee"
+  amount      Decimal      @db.Decimal(12, 2)
+  description String?
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  feePayments FeePayment[]
+}
+
 model Student {
   id           String       @id @default(cuid())
-  studentId    String       @unique  // e.g. MHS-2024-001
+  studentId    String       @unique
   firstName    String
   lastName     String
-  form         String       // Form 1 - Form 6
-  class        String       // e.g. 1A, 2B
+  form         String
+  class        String
   termFee      Decimal      @db.Decimal(12, 2)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
@@ -74,11 +94,16 @@ model FeePayment {
   id            String        @id @default(cuid())
   studentId     String
   student       Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeTypeId     String?
+  feeType       FeeType?      @relation(fields: [feeTypeId], references: [id])
   amount        Decimal       @db.Decimal(12, 2)
   method        PaymentMethod
-  reference     String        // receipt number
-  term          String        // e.g. "Term 1 2024"
+  reference     String        // receipt number issued by school
+  bankReceipt   String?       // ZB Bank / external receipt ref
+  term          String
   notes         String?
+  zbPaymentId   String?       // ZB SmilePay transaction reference
+  zbStatus      ZBPaymentStatus? @default(PENDING)
   createdAt     DateTime      @default(now())
   createdById   String
   createdBy     User          @relation(fields: [createdById], references: [id])
@@ -91,7 +116,7 @@ model Transaction {
   amount        Decimal         @db.Decimal(12, 2)
   type          TransactionType
   category      PaymentCategory
-  reference     String
+  reference     String          // school receipt number
   account       AccountType
   studentId     String?
   student       Student?        @relation(fields: [studentId], references: [id])
@@ -109,4 +134,21 @@ model LedgerEntry {
   debit         Decimal     @default(0) @db.Decimal(12, 2)
   credit        Decimal     @default(0) @db.Decimal(12, 2)
   createdAt     DateTime    @default(now())
+}
+
+// ZB SmilePay pending payment tracker
+model ZBPayment {
+  id              String          @id @default(cuid())
+  zbReference     String          @unique  // ZB transaction reference
+  studentId       String
+  feeTypeId       String?
+  amount          Decimal         @db.Decimal(12, 2)
+  term            String
+  schoolReceipt   String          // pre-generated receipt to issue on success
+  status          ZBPaymentStatus @default(PENDING)
+  paymentUrl      String?         // hosted checkout URL sent to payer
+  payerPhone      String?
+  payerName       String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
