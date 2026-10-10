@@ -1,10 +1,9 @@
 export type PaymentCategory =
   | "BEAM" | "PLAN" | "HIGHERLIFE" | "CAMFED" | "CHILDCARE" | "SELF";
-
 export type TransactionType = "DEBIT" | "CREDIT";
-export type AccountType = "Cash" | "Bank";
-export type UserRole = "admin" | "bursar" | "cashier";
-export type PaymentMethod = "Cash" | "Bank";
+export type AccountType     = "Cash" | "Bank";
+export type UserRole        = "admin" | "bursar" | "cashier";
+export type PaymentMethod   = "Cash" | "Bank" | "ZBSmilePay";
 
 export interface SessionUser {
   id: string;
@@ -25,13 +24,24 @@ export interface Student {
   totalPaid: number;
   lastPayment: string | null;
   lastPaymentAmount: number | null;
-  balance: number;
+  balance: number;           // current term balance (including carry-forward)
+  carryForward: number;      // outstanding from previous term
+}
+
+export interface StudentTermBalance {
+  id: string;
+  studentId: string;
+  term: string;
+  expectedAmount: number;
+  carryForward: number;
+  createdAt: string;
 }
 
 export interface FeePayment {
   id: string;
   studentId: string;
   studentName?: string;
+  feeTypeName?: string;
   amount: number;
   method: PaymentMethod;
   reference: string;
@@ -50,8 +60,9 @@ export interface Transaction {
   category: PaymentCategory;
   reference: string;
   account: AccountType;
-  studentId?: string | null;
-  studentName?: string | null;
+  term: string | null;
+  studentId: string;
+  studentName?: string;
   createdAt: string;
   createdById: string;
   createdByUsername?: string;

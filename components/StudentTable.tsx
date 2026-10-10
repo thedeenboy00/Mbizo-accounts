@@ -19,8 +19,8 @@ export default function StudentTable({ students }: { students: Student[] }) {
         <table style={{ minWidth: 560 }}>
           <thead>
             <tr style={{ background: "#f8fafc", borderBottom: "1px solid var(--border)" }}>
-              {["Student ID", "Name", "Form", "Term Fee", "Paid", "Balance", "Status"].map((h) => (
-                <th key={h} style={{ padding: "11px 14px", textAlign: ["Term Fee","Paid","Balance"].includes(h) ? "right" : "left", fontSize: 12, fontWeight: 600, color: "var(--navy)", whiteSpace: "nowrap" }}>
+              {["Student ID", "Name", "Form", "Term Fee", "Paid", "Carry Fwd", "Balance", "Status"].map((h) => (
+                <th key={h} style={{ padding: "11px 14px", textAlign: ["Term Fee","Paid","Carry Fwd","Balance"].includes(h) ? "right" : "left", fontSize: 12, fontWeight: 600, color: "var(--navy)", whiteSpace: "nowrap" }}>
                   {h}
                 </th>
               ))}
@@ -49,6 +49,9 @@ export default function StudentTable({ students }: { students: Student[] }) {
                   </td>
                   <td style={{ padding: "10px 14px", textAlign: "right", fontSize: 13, fontVariantNumeric: "tabular-nums", color: "var(--green)", whiteSpace: "nowrap" }}>
                     {fmt(s.totalPaid)}
+                  </td>
+                  <td style={{ padding: "10px 14px", textAlign: "right", fontSize: 12, fontVariantNumeric: "tabular-nums", color: s.carryForward > 0 ? "var(--amber)" : "var(--text-muted)", whiteSpace: "nowrap" }}>
+                    {s.carryForward > 0 ? fmt(s.carryForward) : "—"}
                   </td>
                   <td style={{ padding: "10px 14px", textAlign: "right", fontSize: 13, fontWeight: 600, fontVariantNumeric: "tabular-nums", color: s.balance > 0 ? "var(--red)" : "var(--green)", whiteSpace: "nowrap" }}>
                     {s.balance > 0 ? fmt(s.balance) : "0.00"}

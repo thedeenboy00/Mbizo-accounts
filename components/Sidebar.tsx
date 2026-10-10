@@ -119,11 +119,9 @@ export default function Sidebar({ username }: SidebarProps) {
       style={{
         width: 220,
         background: "var(--navy)",
-        height: "100%",
-        minHeight: "100vh",
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
-        overflowY: "auto",
         overflowX: "hidden",
       }}
     >
@@ -157,12 +155,12 @@ export default function Sidebar({ username }: SidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, padding: "10px 8px" }}>
+      <nav style={{ flex: 1, padding: "10px 8px", overflowY: "auto", minHeight: 0 }}>
         {NAV_ITEMS.map(navLink)}
       </nav>
 
       {/* Footer */}
-      <div style={{ padding: "10px 8px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+      <div style={{ padding: "10px 8px", borderTop: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
         {/* User */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 4 }}>
           <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "white", flexShrink: 0 }}>
@@ -293,6 +291,7 @@ export default function Sidebar({ username }: SidebarProps) {
           overflow: "hidden",
         }}
         className="desktop-sidebar"
+        aria-label="Sidebar navigation"
       >
         {sidebarContent}
       </aside>

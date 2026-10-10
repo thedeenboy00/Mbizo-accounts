@@ -31,10 +31,10 @@ export default function TransactionTable({ transactions }: { transactions: Trans
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
       <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        <table style={{ minWidth: 580 }}>
+        <table style={{ minWidth: 760 }}>
           <thead>
             <tr style={{ background: "#f8fafc", borderBottom: "1px solid var(--border)" }}>
-              {["Date", "Ref", "Description", "Category", "Debit", "Credit"].map((h) => (
+              {["Date", "Ref", "Student", "Term", "Description", "Category", "Debit", "Credit"].map((h) => (
                 <th key={h} style={{ padding: "11px 14px", textAlign: ["Debit","Credit"].includes(h) ? "right" : "left", fontSize: 12, fontWeight: 600, color: "var(--navy)", whiteSpace: "nowrap" }}>
                   {h}
                 </th>
@@ -50,7 +50,13 @@ export default function TransactionTable({ transactions }: { transactions: Trans
                 <td style={{ padding: "10px 14px", fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", whiteSpace: "nowrap" }}>
                   {tx.reference}
                 </td>
-                <td style={{ padding: "10px 14px", fontSize: 13, color: "var(--text)", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--navy)", fontWeight: 500, whiteSpace: "nowrap", maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {tx.studentName ?? "—"}
+                </td>
+                <td style={{ padding: "10px 14px", fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                  {tx.term ?? "—"}
+                </td>
+                <td style={{ padding: "10px 14px", fontSize: 13, color: "var(--text)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {tx.description}
                 </td>
                 <td style={{ padding: "10px 14px" }}>

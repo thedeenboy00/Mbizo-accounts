@@ -53,20 +53,30 @@ export default async function StudentPage({
         <RecordPaymentButton studentId={student.id} studentName={`${student.firstName} ${student.lastName}`} />
       </div>
 
+      {/* Outstanding carry-forward banner */}
+      {student.carryForward > 0 && (
+        <div style={{ padding: "12px 16px", borderRadius: 8, background: "var(--amber-bg)", border: "1px solid #fbbf2430", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round"/></svg>
+          <span style={{ fontSize: 13, color: "var(--amber)" }}>
+            <strong>USD {fmt(student.carryForward)}</strong> outstanding from previous term has been added to this term&apos;s balance.
+          </span>
+        </div>
+      )}
+
       {/* Finance summary */}
       <div className="student-stat-grid" style={{ marginBottom: 24 }}>
         {[
-          { label: "Term Fee",       value: `USD ${fmt(student.termFee)}`,           color: "var(--navy)" },
-          { label: "Total Paid",     value: `USD ${fmt(student.totalPaid)}`,          color: "var(--green)" },
-          { label: "Balance Owing",  value: `USD ${fmt(Math.max(0, student.balance))}`, color: balanceColor },
-          { label: "Last Payment",   value: student.lastPayment ? `USD ${fmt(student.lastPaymentAmount ?? 0)}` : "—", color: "var(--navy)" },
+          { label: "Term Fee",          value: `USD ${fmt(student.termFee)}`,                    color: "var(--navy)" },
+          { label: "Carry Forward",     value: student.carryForward > 0 ? `USD ${fmt(student.carryForward)}` : "None", color: student.carryForward > 0 ? "var(--amber)" : "var(--text-muted)" },
+          { label: "Total Paid",        value: `USD ${fmt(student.totalPaid)}`,                  color: "var(--green)" },
+          { label: "Balance Owing",     value: `USD ${fmt(Math.max(0, student.balance))}`,       color: balanceColor },
         ].map((s) => (
           <div key={s.label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "16px" }}>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6, fontWeight: 500 }}>{s.label}</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: s.color, letterSpacing: "-0.3px" }}>{s.value}</div>
-            {s.label === "Last Payment" && student.lastPayment && (
+            {s.label === "Balance Owing" && student.lastPayment && (
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>
-                {fmtDate(student.lastPayment)}
+                Last paid: {fmtDate(student.lastPayment)}
               </div>
             )}
           </div>

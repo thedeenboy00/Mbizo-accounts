@@ -35,7 +35,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         continue;
       }
 
-      inputs.push({ studentId, firstName, lastName, form, class: cls, termFee });
+      const term = String(row.term ?? row["Term"] ?? `Term 1 ${new Date().getFullYear()}`).trim();
+      inputs.push({ studentId, firstName, lastName, form, class: cls, termFee, term });
     }
 
     if (inputs.length === 0) {
