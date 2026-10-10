@@ -7,12 +7,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum TransactionType { DEBIT; CREDIT }
-enum PaymentCategory { BEAM; PLAN; HIGHERLIFE; CAMFED; CHILDCARE; SELF }
-enum AccountType     { Cash; Bank }
-enum UserRole        { admin; bursar; cashier }
-enum PaymentMethod   { Cash; Bank; ZBSmilePay }
-enum ZBPaymentStatus { PENDING; PAID; FAILED; CANCELLED }
+enum TransactionType {
+  DEBIT
+  CREDIT
+}
+
+enum PaymentCategory {
+  BEAM
+  PLAN
+  HIGHERLIFE
+  CAMFED
+  CHILDCARE
+  SELF
+}
+
+enum AccountType {
+  Cash
+  Bank
+}
+
+enum UserRole {
+  admin
+  bursar
+  cashier
+}
+
+enum PaymentMethod {
+  Cash
+  Bank
+  ZBSmilePay
+}
+
+enum ZBPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+}
 
 model User {
   id           String        @id @default(cuid())
@@ -45,50 +76,49 @@ model FeeType {
 }
 
 model Student {
-  id              String             @id @default(cuid())
-  studentId       String             @unique
-  firstName       String
-  lastName        String
-  form            String
-  class           String
-  termFee         Decimal            @db.Decimal(12, 2)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  feePayments     FeePayment[]
-  transactions    Transaction[]
-  termBalances    StudentTermBalance[]
+  id           String               @id @default(cuid())
+  studentId    String               @unique
+  firstName    String
+  lastName     String
+  form         String
+  class        String
+  termFee      Decimal              @db.Decimal(12, 2)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  feePayments  FeePayment[]
+  transactions Transaction[]
+  termBalances StudentTermBalance[]
 }
 
-// Tracks per-term fee expectation and carry-forward outstanding
 model StudentTermBalance {
-  id              String   @id @default(cuid())
-  studentId       String
-  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  term            String   // e.g. "Term 1 2024"
-  expectedAmount  Decimal  @db.Decimal(12, 2)  // sum of all fee types for this term
-  carryForward    Decimal  @default(0) @db.Decimal(12, 2) // outstanding from previous term
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  studentId      String
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  term           String
+  expectedAmount Decimal  @db.Decimal(12, 2)
+  carryForward   Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt      DateTime @default(now())
 
   @@unique([studentId, term])
 }
 
 model FeePayment {
-  id            String           @id @default(cuid())
-  studentId     String
-  student       Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  feeTypeId     String?
-  feeType       FeeType?         @relation(fields: [feeTypeId], references: [id])
-  amount        Decimal          @db.Decimal(12, 2)
-  method        PaymentMethod
-  reference     String
-  bankReceipt   String?
-  term          String
-  notes         String?
-  zbPaymentId   String?
-  zbStatus      ZBPaymentStatus? @default(PENDING)
-  createdAt     DateTime         @default(now())
-  createdById   String
-  createdBy     User             @relation(fields: [createdById], references: [id])
+  id          String          @id @default(cuid())
+  studentId   String
+  student     Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeTypeId   String?
+  feeType     FeeType?        @relation(fields: [feeTypeId], references: [id])
+  amount      Decimal         @db.Decimal(12, 2)
+  method      PaymentMethod
+  reference   String
+  bankReceipt String?
+  term        String
+  notes       String?
+  zbPaymentId String?
+  zbStatus    ZBPaymentStatus? @default(PENDING)
+  createdAt   DateTime        @default(now())
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id])
 }
 
 model Transaction {
@@ -100,7 +130,7 @@ model Transaction {
   category      PaymentCategory
   reference     String
   account       AccountType
-  term          String?         // e.g. "Term 1 2024"
+  term          String?
   studentId     String
   student       Student         @relation(fields: [studentId], references: [id])
   createdAt     DateTime        @default(now())
