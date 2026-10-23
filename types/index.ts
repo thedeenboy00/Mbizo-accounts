@@ -51,6 +51,8 @@ export interface FeePayment {
   createdByUsername?: string;
 }
 
+export type TxMode = "fee" | "general";
+
 export interface Transaction {
   id: string;
   date: string;
@@ -61,8 +63,9 @@ export interface Transaction {
   reference: string;
   account: AccountType;
   term: string | null;
-  studentId: string;
-  studentName?: string;
+  txMode: TxMode;
+  studentId: string | null;
+  studentName?: string | null;
   createdAt: string;
   createdById: string;
   createdByUsername?: string;

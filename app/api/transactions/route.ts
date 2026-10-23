@@ -16,7 +16,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category") as PaymentCategory | null;
   const dateFrom = searchParams.get("dateFrom") ?? undefined;
-  const dateTo   = searchParams.get("dateTo") ?? undefined;
+  const dateTo   = searchParams.get("dateTo")   ?? undefined;
 
   const transactions = await getTransactions({ category: category ?? undefined, dateFrom, dateTo });
   return NextResponse.json(transactions);
@@ -28,17 +28,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   try {
     const body = await req.json() as {
-      date?: string; description?: string; amount?: unknown; type?: unknown;
-      category?: unknown; reference?: string; account?: unknown;
-      studentId?: string; feeTypeId?: string; term?: string;
+      date?: string; description?: string; amount?: unknown;
+      type?: unknown; category?: unknown; reference?: string;
+      account?: unknown; studentId?: string; feeTypeId?: string;
+      term?: string; txMode?: string;
     };
 
-    const { date, description, amount, type, category, reference, account, studentId, feeTypeId, term } = body;
+    const {
+      date, description, amount, type, category,
+      reference, account, studentId, feeTypeId, term,
+    } = body;
 
-    // Student is required
-    if (!studentId || !studentId.trim()) {
-      return NextResponse.json({ error: "A student must be selected for every transaction." }, { status: 400 });
+    const txMode = (body.txMode === "general" ? "general" : "fee") as "fee" | "general";
+
+    // Student is required only for fee collections
+    if (txMode === "fee" && (!studentId || !studentId.trim())) {
+      return NextResponse.json(
+        { error: "A student must be selected for school fee transactions." },
+        { status: 400 }
+      );
     }
+
     if (!date || !description || !amount || !type || !category || !reference || !account) {
       return NextResponse.json({ error: "All fields are required." }, { status: 400 });
     }
@@ -57,23 +67,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Amount must be a positive number." }, { status: 400 });
     }
 
-    // Verify student exists
-    const student = await prisma.student.findUnique({ where: { id: studentId } });
-    if (!student) return NextResponse.json({ error: "Student not found." }, { status: 404 });
+    // Verify student exists if provided
+    if (studentId) {
+      const student = await prisma.student.findUnique({ where: { id: studentId } });
+      if (!student) return NextResponse.json({ error: "Student not found." }, { status: 404 });
+    }
 
-    // Create the transaction (posts to ledger automatically)
     const id = await createTransaction({
-      date: date as string, description: description as string,
-      amount: parsedAmount, type: type as TransactionType,
-      category: category as PaymentCategory, reference: reference as string,
-      account: account as AccountType, studentId,
-      term: term?.trim() || null, createdById: session.id,
+      date: date as string,
+      description: description as string,
+      amount: parsedAmount,
+      type: type as TransactionType,
+      category: category as PaymentCategory,
+      reference: reference as string,
+      account: account as AccountType,
+      txMode,
+      studentId: studentId?.trim() || null,
+      term: term?.trim() || null,
+      createdById: session.id,
     });
 
-    // If it's a receipt (DEBIT), also record as a FeePayment to update student balance
-    if ((type as TransactionType) === "DEBIT") {
+    // Auto-create FeePayment only for fee collection DEBITs linked to a student
+    if (txMode === "fee" && (type as TransactionType) === "DEBIT" && studentId) {
       await recordFeePayment({
-        studentId, amount: parsedAmount,
+        studentId,
+        amount: parsedAmount,
         method: (account as AccountType) === "Bank" ? "Bank" : "Cash",
         reference: reference as string,
         term: term?.trim() || "General",

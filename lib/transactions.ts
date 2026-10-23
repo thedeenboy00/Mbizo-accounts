@@ -16,7 +16,8 @@ export interface CreateTransactionInput {
   category: PaymentCategory;
   reference: string;
   account: AccountType;
-  studentId: string;
+  txMode: "fee" | "general";
+  studentId: string | null;
   term: string | null;
   createdById: string;
 }
@@ -64,7 +65,8 @@ interface TxRow {
   reference: string;
   account: string;
   term: string | null;
-  studentId: string;
+  txMode: string;
+  studentId: string | null;
   createdAt: Date;
   createdById: string;
   createdBy: { username: string };
@@ -81,7 +83,8 @@ interface TxRowSimple {
   reference: string;
   account: string;
   term: string | null;
-  studentId: string;
+  txMode: string;
+  studentId: string | null;
   createdAt: Date;
   createdById: string;
 }
@@ -111,7 +114,8 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
       category: input.category,
       reference: input.reference,
       account: input.account,
-      studentId: input.studentId,
+      txMode: input.txMode,
+      studentId: input.studentId ?? null,
       term: input.term,
       createdById: input.createdById,
       ledgerEntries: { create: buildLedgerEntries(input) },
@@ -154,8 +158,9 @@ export async function getTransactions(filters?: {
     reference: r.reference,
     account: r.account as AccountType,
     term: r.term,
+    txMode: (r.txMode ?? "fee") as "fee" | "general",
     studentId: r.studentId,
-    studentName: r.student ? `${r.student.firstName} ${r.student.lastName}` : undefined,
+    studentName: r.student ? `${r.student.firstName} ${r.student.lastName}` : null,
     createdAt: r.createdAt.toISOString(),
     createdById: r.createdById,
     createdByUsername: r.createdBy.username,

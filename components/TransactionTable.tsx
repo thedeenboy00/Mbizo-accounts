@@ -50,8 +50,12 @@ export default function TransactionTable({ transactions }: { transactions: Trans
                 <td style={{ padding: "10px 14px", fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", whiteSpace: "nowrap" }}>
                   {tx.reference}
                 </td>
-                <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--navy)", fontWeight: 500, whiteSpace: "nowrap", maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {tx.studentName ?? "—"}
+                <td style={{ padding: "10px 14px", whiteSpace: "nowrap", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {tx.studentName ? (
+                    <span style={{ fontSize: 12, color: "var(--navy)", fontWeight: 500 }}>{tx.studentName}</span>
+                  ) : (
+                    <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 6px", borderRadius: 3, background: "#f0f9ff", color: "#0369a1" }}>General</span>
+                  )}
                 </td>
                 <td style={{ padding: "10px 14px", fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
                   {tx.term ?? "—"}
